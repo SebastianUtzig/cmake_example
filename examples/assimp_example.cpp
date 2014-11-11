@@ -9,8 +9,6 @@
 #include <iostream>
 #include <stdexcept>
 
-// the global Assimp scene object
-const aiScene* scene = NULL;
 
 // Information to render each assimp node
 struct MyMesh{
@@ -19,6 +17,17 @@ struct MyMesh{
     GLuint texIndex;
     GLuint uniformBlockIndex;
     int numFaces;
+};
+
+// This is for a shader uniform block
+struct MyMaterial{
+
+    float diffuse[4];
+    float ambient[4];
+    float specular[4];
+    float emissive[4];
+    float shininess;
+    int texCount;
 };
 
 std::vector<struct MyMesh> myMeshes;
@@ -109,7 +118,7 @@ const std::string strFragmentShader(
     "}\n"*/
 );
 
-bool Import3DFromFile( const std::string& pFile)
+const aiScene* Import3DFromFile( const std::string& pFile)
 {
     Assimp::Importer importer;
     //check if file exists
@@ -118,22 +127,24 @@ bool Import3DFromFile( const std::string& pFile)
         fin.close();
     }
     else{
-        printf("Couldn't open file: %s\n", pFile.c_str());
-        printf("%s\n", importer.GetErrorString());
-        return false;
+        std::cout << "Couldn't open file: " << pFile.c_str() << std::endl;
+        std::cout << importer.GetErrorString();
+        return NULL;
     }
- 
-    scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
+
+
+    // the global Assimp scene object
+    const aiScene* scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
  
     // If the import failed, report it
     if( !scene)
     {
-        printf("%s\n", importer.GetErrorString());
-        return false;
+        std::cout << importer.GetErrorString()  << std::endl;
+        return NULL;
     }
- 
+
     // Now we can access the file's contents.
-    printf("Import of scene %s succeeded.",pFile.c_str());
+    std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
  
     // aiVector3D scene_min, scene_max, scene_center;
     // get_bounding_box(&scene_min, &scene_max);
@@ -144,12 +155,38 @@ bool Import3DFromFile( const std::string& pFile)
     // scaleFactor = 1.f / tmp;
  
     // We're done. Everything will be cleaned up by the importer destructor
-    return true;
+
+    return scene;
 }
 
 int main(int argc, char *argv[])
 {
     Assimp::Importer importer;
+    std::string pFile = "bench.obj" ;
+    //check if file exists
+    std::ifstream fin(pFile.c_str());
+    if(!fin.fail()) {
+        fin.close();
+    }
+    else{
+        std::cout << "Couldn't open file: " << pFile.c_str() << std::endl;
+        std::cout << importer.GetErrorString();
+    }
+
+
+    // the global Assimp scene object
+    const aiScene* scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
+ 
+    // If the import failed, report it
+    if( !scene)
+    {
+        std::cout << importer.GetErrorString()  << std::endl;
+    }
+
+    // Now we can access the file's contents.
+    std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
+ 
+    // Assimp::Importer importer;
     // if (argc == 2) {
     //     auto const* scene = importer.ReadFile(argv[1],
     //         aiProcessPreset_TargetRealtime_MaxQuality
@@ -160,7 +197,9 @@ int main(int argc, char *argv[])
     //         return -1;
     //     }
     // }
-    Import3DFromFile("/bench.obj");
+    //auto scene = Import3DFromFile("bench.obj");
+    std::cout << scene->mMeshes[0]->mNumFaces << std::endl;
+
     GLFWwindow* window;
 
     /* Initialize the library */
@@ -218,8 +257,11 @@ int main(int argc, char *argv[])
     glBindVertexArray(0);*/
 
     //new:
+    std::cout << "generating vao." << std::endl;
+
     genVAOsAndUniformBuffer(scene);
 
+    std::cout << "finished generating vao." << std::endl;
 
 
     /* Loop until the user closes the window */
@@ -288,9 +330,11 @@ int main(int argc, char *argv[])
 void genVAOsAndUniformBuffer(const aiScene *sc) {
  
     struct MyMesh aMesh;
-    // struct MyMaterial aMat; 
+    struct MyMaterial aMat; 
     GLuint buffer;
- 
+
+    std::cout << sc->mMeshes[0]->mNumFaces << std::endl;
+    
     // For each mesh
     for (unsigned int n = 0; n < sc->mNumMeshes; ++n)
     {
@@ -298,15 +342,17 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
  
         // create array with faces
         // have to convert from Assimp format to array
-        unsigned int *faceArray;
-        faceArray = (unsigned int *)malloc(sizeof(unsigned int) * mesh->mNumFaces * 3);
+        std::vector<unsigned int> faceArray;
+        //faceArray = (unsigned int *)malloc(sizeof(unsigned int) * mesh->mNumFaces * 3);
         unsigned int faceIndex = 0;
  
         for (unsigned int t = 0; t < mesh->mNumFaces; ++t) {
             const aiFace* face = &mesh->mFaces[t];
  
-            memcpy(&faceArray[faceIndex], face->mIndices,3 * sizeof(unsigned int));
-            faceIndex += 3;
+            faceArray.push_back(face->mIndices[0]);
+            faceArray.push_back(face->mIndices[1]);
+            faceArray.push_back(face->mIndices[2]);
+            //faceIndex += 3;
         }
         aMesh.numFaces = sc->mMeshes[n]->mNumFaces;
  
@@ -317,7 +363,7 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
         // buffer for faces
         glGenBuffers(1, &buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * mesh->mNumFaces * 3, faceArray, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * mesh->mNumFaces * 3, &faceArray[0], GL_STATIC_DRAW);
  
         // buffer for vertex positions
         if (mesh->HasPositions()) {
@@ -357,9 +403,8 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER,0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
- 
-        // create material uniform buffer
-        aiMaterial *mtl = sc->mMaterials[mesh->mMaterialIndex];
+        // // create material uniform buffer
+        // aiMaterial *mtl = sc->mMaterials[mesh->mMaterialIndex];
  
         // aiString texPath;   //contains filename of texture
         // if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)){
@@ -401,8 +446,8 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
         // aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
         // aMat.shininess = shininess;
  
-        // glGenBuffers(1,&(aMesh.uniformBlockIndex));
-        // glBindBuffer(GL_UNIFORM_BUFFER,aMesh.uniformBlockIndex);
+         glGenBuffers(1,&(aMesh.uniformBlockIndex));
+         glBindBuffer(GL_UNIFORM_BUFFER,aMesh.uniformBlockIndex);
         // glBufferData(GL_UNIFORM_BUFFER, sizeof(aMat), (void *)(&aMat), GL_STATIC_DRAW);
  
         myMeshes.push_back(aMesh);
