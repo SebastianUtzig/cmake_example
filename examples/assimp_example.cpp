@@ -1,10 +1,34 @@
 #include "utils.hpp"
+
 #include <GLFW/glfw3.h>
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+
 #include <iostream>
 #include <stdexcept>
+
+// the global Assimp scene object
+const aiScene* scene = NULL;
+
+// Information to render each assimp node
+struct MyMesh{
+
+    GLuint vao;
+    GLuint texIndex;
+    GLuint uniformBlockIndex;
+    int numFaces;
+};
+
+std::vector<struct MyMesh> myMeshes;
+
+// Vertex Attribute Locations
+GLuint vertexLoc=0, normalLoc=1, texCoordLoc=2;
+
+
+//forward declaration
+void genVAOsAndUniformBuffer(const aiScene*);
 
 const std::string strVertexShader(
     "#version 440\n"
@@ -85,104 +109,141 @@ const std::string strFragmentShader(
     "}\n"*/
 );
 
+bool Import3DFromFile( const std::string& pFile)
+{
+    Assimp::Importer importer;
+    //check if file exists
+    std::ifstream fin(pFile.c_str());
+    if(!fin.fail()) {
+        fin.close();
+    }
+    else{
+        printf("Couldn't open file: %s\n", pFile.c_str());
+        printf("%s\n", importer.GetErrorString());
+        return false;
+    }
+ 
+    scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
+ 
+    // If the import failed, report it
+    if( !scene)
+    {
+        printf("%s\n", importer.GetErrorString());
+        return false;
+    }
+ 
+    // Now we can access the file's contents.
+    printf("Import of scene %s succeeded.",pFile.c_str());
+ 
+    // aiVector3D scene_min, scene_max, scene_center;
+    // get_bounding_box(&scene_min, &scene_max);
+    // float tmp;
+    // tmp = scene_max.x-scene_min.x;
+    // tmp = scene_max.y - scene_min.y > tmp?scene_max.y - scene_min.y:tmp;
+    // tmp = scene_max.z - scene_min.z > tmp?scene_max.z - scene_min.z:tmp;
+    // scaleFactor = 1.f / tmp;
+ 
+    // We're done. Everything will be cleaned up by the importer destructor
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     Assimp::Importer importer;
-    if (argc == 2) {
-        auto const* scene = importer.ReadFile(argv[1],
-            aiProcessPreset_TargetRealtime_MaxQuality
-        );
+    // if (argc == 2) {
+    //     auto const* scene = importer.ReadFile(argv[1],
+    //         aiProcessPreset_TargetRealtime_MaxQuality
+    //     );
 
-        if(!scene){
-            std::cerr<<"Unable to load model!"<<std::endl;
-            return -1;
-        }
+    //     if(!scene){
+    //         std::cerr<<"Unable to load model!"<<std::endl;
+    //         return -1;
+    //     }
+    // }
+    Import3DFromFile("/bench.obj");
+    GLFWwindow* window;
 
-        GLFWwindow* window;
+    /* Initialize the library */
+    if (!glfwInit())
+        return -1;
 
-        /* Initialize the library */
-        if (!glfwInit())
-            return -1;
-
-        /* Create a windowed mode window and its OpenGL context */
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        
-        window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-        if (!window)
-        {
-            glfwTerminate();
-            return -1;
-        }
-        
-        /* Make the window's context current */
-        glfwMakeContextCurrent(window);
-
-        glewExperimental = GL_TRUE;
-        GLenum glewError = glewInit();
-
-        glClearColor(1.0,0.0,0.0,1.0);
-        
-        GLuint program = 0;
-        try {
-            program = createProgram(strVertexShader, strFragmentShader);
-        } catch (std::logic_error& e) {
-            std::cerr << e.what() << std::endl;
-        }
-
-        glUseProgram(program);
-
-        auto timeLoc = glGetUniformLocation(program, "time");
-
-        /*float vertices[] = {-0.5f,-0.5f,0.0f,1.0f,
-                            -0.5f,0.5f,0.0f,1.0f,
-                            0.5f,0.5f,0.0f,1.0f,
-                            -0.5f,-0.5f,0.0f,1.0f,
-                            0.5f,0.5f,0.0f,1.0f,
-                            0.5f,-0.5f,0.0f,1.0f};
-
-        GLuint vao = 0;
-        glGenVertexArrays(1,&vao);
-        glBindVertexArray(vao);
-
-        GLuint vbo = 0;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER,vbo);
-        glBufferData(GL_ARRAY_BUFFER,6*4* sizeof(float),vertices,GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,0);
-        glBindVertexArray(0);*/
-
-        //new:
-        genVAOsAndUniformBuffer(scene);
-
-
-
-        /* Loop until the user closes the window */
-        while (!glfwWindowShouldClose(window))
-        {
-            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-            float time = static_cast<float>(glfwGetTime());
-          
-            glUseProgram(program);
-            
-            glUniform1f(timeLoc, time);
-
-            /*glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);*/
-            glUseProgram(0);
-            /* Swap front and back buffers */
-            glfwSwapBuffers(window);
-
-            /* Poll for and process events */
-            glfwPollEvents();
-        }
-
+    /* Create a windowed mode window and its OpenGL context */
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    if (!window)
+    {
         glfwTerminate();
-
+        return -1;
     }
+    
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
+
+    glewExperimental = GL_TRUE;
+    GLenum glewError = glewInit();
+
+    glClearColor(1.0,0.0,0.0,1.0);
+    
+    GLuint program = 0;
+    try {
+        program = createProgram(strVertexShader, strFragmentShader);
+    } catch (std::logic_error& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    glUseProgram(program);
+
+    auto timeLoc = glGetUniformLocation(program, "time");
+
+    /*float vertices[] = {-0.5f,-0.5f,0.0f,1.0f,
+                        -0.5f,0.5f,0.0f,1.0f,
+                        0.5f,0.5f,0.0f,1.0f,
+                        -0.5f,-0.5f,0.0f,1.0f,
+                        0.5f,0.5f,0.0f,1.0f,
+                        0.5f,-0.5f,0.0f,1.0f};
+
+    GLuint vao = 0;
+    glGenVertexArrays(1,&vao);
+    glBindVertexArray(vao);
+
+    GLuint vbo = 0;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER,vbo);
+    glBufferData(GL_ARRAY_BUFFER,6*4* sizeof(float),vertices,GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,0);
+    glBindVertexArray(0);*/
+
+    //new:
+    genVAOsAndUniformBuffer(scene);
+
+
+
+    /* Loop until the user closes the window */
+    while (!glfwWindowShouldClose(window))
+    {
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        float time = static_cast<float>(glfwGetTime());
+      
+        glUseProgram(program);
+        
+        glUniform1f(timeLoc, time);
+
+        /*glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);*/
+        glUseProgram(0);
+        /* Swap front and back buffers */
+        glfwSwapBuffers(window);
+
+        /* Poll for and process events */
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
 
     return 0;
 }
@@ -227,7 +288,7 @@ int main(int argc, char *argv[])
 void genVAOsAndUniformBuffer(const aiScene *sc) {
  
     struct MyMesh aMesh;
-    struct MyMaterial aMat; 
+    // struct MyMaterial aMat; 
     GLuint buffer;
  
     // For each mesh
@@ -300,49 +361,49 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
         // create material uniform buffer
         aiMaterial *mtl = sc->mMaterials[mesh->mMaterialIndex];
  
-        aiString texPath;   //contains filename of texture
-        if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)){
-                //bind texture
-                unsigned int texId = textureIdMap[texPath.data];
-                aMesh.texIndex = texId;
-                aMat.texCount = 1;
-            }
-        else
-            aMat.texCount = 0;
+        // aiString texPath;   //contains filename of texture
+        // if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)){
+        //         //bind texture
+        //         unsigned int texId = textureIdMap[texPath.data];
+        //         aMesh.texIndex = texId;
+        //         aMat.texCount = 1;
+        //     }
+        // else
+        //     aMat.texCount = 0;
  
-        float c[4];
-        set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
-        aiColor4D diffuse;
-        if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse))
-            color4_to_float4(&diffuse, c);
-        memcpy(aMat.diffuse, c, sizeof(c));
+        // float c[4];
+        // set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
+        // aiColor4D diffuse;
+        // if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse))
+        //     color4_to_float4(&diffuse, c);
+        // memcpy(aMat.diffuse, c, sizeof(c));
  
-        set_float4(c, 0.2f, 0.2f, 0.2f, 1.0f);
-        aiColor4D ambient;
-        if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient))
-            color4_to_float4(&ambient, c);
-        memcpy(aMat.ambient, c, sizeof(c));
+        // set_float4(c, 0.2f, 0.2f, 0.2f, 1.0f);
+        // aiColor4D ambient;
+        // if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient))
+        //     color4_to_float4(&ambient, c);
+        // memcpy(aMat.ambient, c, sizeof(c));
  
-        set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
-        aiColor4D specular;
-        if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular))
-            color4_to_float4(&specular, c);
-        memcpy(aMat.specular, c, sizeof(c));
+        // set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
+        // aiColor4D specular;
+        // if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular))
+        //     color4_to_float4(&specular, c);
+        // memcpy(aMat.specular, c, sizeof(c));
  
-        set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
-        aiColor4D emission;
-        if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emission))
-            color4_to_float4(&emission, c);
-        memcpy(aMat.emissive, c, sizeof(c));
+        // set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
+        // aiColor4D emission;
+        // if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emission))
+        //     color4_to_float4(&emission, c);
+        // memcpy(aMat.emissive, c, sizeof(c));
  
-        float shininess = 0.0;
-        unsigned int max;
-        aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
-        aMat.shininess = shininess;
+        // float shininess = 0.0;
+        // unsigned int max;
+        // aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
+        // aMat.shininess = shininess;
  
-        glGenBuffers(1,&(aMesh.uniformBlockIndex));
-        glBindBuffer(GL_UNIFORM_BUFFER,aMesh.uniformBlockIndex);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(aMat), (void *)(&aMat), GL_STATIC_DRAW);
+        // glGenBuffers(1,&(aMesh.uniformBlockIndex));
+        // glBindBuffer(GL_UNIFORM_BUFFER,aMesh.uniformBlockIndex);
+        // glBufferData(GL_UNIFORM_BUFFER, sizeof(aMat), (void *)(&aMat), GL_STATIC_DRAW);
  
         myMeshes.push_back(aMesh);
     }
