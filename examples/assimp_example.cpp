@@ -15,6 +15,10 @@
 #include <stdexcept>
 #include <map>
 
+//helpers from util.h out of ogldev tutorial 38
+//utility function to count elements in array
+#define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
+#define SNPRINTF snprintf
 
 //animation
 #define POSITION_LOCATION    0
@@ -295,8 +299,15 @@ int main(int argc, char *argv[])
         BoneTransform(static_cast<float>(glfwGetTime()), Transforms);
 
         for (uint i = 0 ; i < Transforms.size() ; i++) {
-            //m_pEffect->SetBoneTransform(i, Transforms[i]);
-            glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)Transforms[i]);
+            float currentTranform[4][4] = 
+            {
+                {Transforms[i].a1, Transforms[i].a2, Transforms[i].a3, Transforms[i].a4},
+                {Transforms[i].b1, Transforms[i].b2, Transforms[i].b3, Transforms[i].b4},
+                {Transforms[i].c1, Transforms[i].c2, Transforms[i].c3, Transforms[i].c4},
+                {Transforms[i].d1, Transforms[i].d2, Transforms[i].d3, Transforms[i].d4},
+            };
+            //needs pointer to 4x4 array as last parameter
+            glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)currentTranform);
         }
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
