@@ -74,9 +74,11 @@ const std::string strVertexShader(
 const std::string strFragmentShader(
     "#version 440\n"
     "layout(location = 0) out vec4 outputColor;\n"
+    "in vec3 Normal;\n"
     "void main()\n"
     "{\n"
-    "   outputColor = vec4(0.7, 0.0f, 0.0f, 1.0f);\n"
+    "   outputColor = vec4(abs(Normal.x),abs(Normal.y),abs(Normal.z), 1.0f);\n"
+    // "   outputColor = vec4(0.7, 0.0f, 0.0f, 1.0f);\n"
     "}\n"
 
 );
@@ -150,7 +152,7 @@ int main(int argc, char *argv[])
 
     // generating view / projection / model  matrix
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0));
-    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 1.0)));
+    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 4.0)));
     glm::mat4 projMatrix = glm::perspective(60.0f, (float)1024/800, 1.0f, 100.0f);
 
     // upload Uniform matrices
@@ -159,17 +161,7 @@ int main(int argc, char *argv[])
     glUniformMatrix4fv(projMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(projMatrix) );
  
 
-    std::cout << "generating vao ... ";
-
     genVAOsAndUniformBuffer(scene);
-
-    std::cout << "done" << std::endl;
-
-    std::cout << "Number of meshes " << myMeshes.size() << std::endl;
-    for (auto mesh: myMeshes)
-    {
-        std::cout << "Number of faces " << mesh.numFaces << std::endl;
-    }
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -178,15 +170,18 @@ int main(int argc, char *argv[])
       
         glUseProgram(program);
         
+        float time = static_cast<float>(glfwGetTime());
+        
+        modelMatrix = glm::rotate(glm::mat4(1.0), time*0.3f, glm::vec3(0.0f, 1.0f, 0.0f) );
+        glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
+
+
         for (auto mesh: myMeshes)
         {
             glBindVertexArray(mesh.vao);
             glDrawElements(GL_TRIANGLES, mesh.numFaces*3,GL_UNSIGNED_INT,0);
         }
 
-        /*glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);*/
         glUseProgram(0);
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
