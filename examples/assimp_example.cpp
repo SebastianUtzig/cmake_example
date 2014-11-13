@@ -39,8 +39,17 @@ std::vector<struct MyMesh> myMeshes;
 // Vertex Attribute Locations
 GLuint vertexLoc=0, normalLoc=1, texCoordLoc=2;
 
+//handle for shader
+GLuint program = 0;
+GLuint modelMatrixUniformLocation = 0;
+GLuint viewMatrixUniformLocation = 0;
+GLuint projMatrixUniformLocation = 0;
+
+glm::mat4 modelMatrix;
+
 //forward declaration
 void genVAOsAndUniformBuffer(const aiScene*);
+void setUpShader();
 
 int main(int argc, char *argv[])
 {
@@ -98,46 +107,8 @@ int main(int argc, char *argv[])
     glClearColor(0.4,0.4,0.4,1.0);
     glEnable(GL_DEPTH_TEST);
 
-//set up shader
-    std::ifstream inFile;
-    inFile.open("../shaders/vertexShader.vs");//open the input file
-    std::stringstream vShaderStream;
-    vShaderStream << inFile.rdbuf();//read the file
-    inFile.close();
-    const std::string strVertexShader = vShaderStream.str();//str holds the content of the file
 
-    inFile.open("../shaders/fragmentShader.fs");//open the input file
-    std::stringstream fShaderStream;
-    fShaderStream << inFile.rdbuf();//read the file
-    const std::string strFragmentShader = fShaderStream.str();//str holds the content of the file
-
-    GLuint program = 0;
-    try {
-        program = createProgram(strVertexShader, strFragmentShader);
-    } catch (std::logic_error& e) {
-        std::cerr << e.what() << std::endl;
-    }
-
-    // get uniform locations
-    glUseProgram(program);
-    auto modelMatrixUniformLocation = glGetUniformLocation(program, "modelMatrix");
-    auto viewMatrixUniformLocation  = glGetUniformLocation(program, "viewMatrix");
-    auto projMatrixUniformLocation  = glGetUniformLocation(program, "projMatrix");
-
-
-    // generating view / projection / model  matrix
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 20.0, -30));
-    modelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0), 90.0f, glm::vec3(1.0f, 0.0f, 0.0f) );
-    modelMatrix = modelMatrix * glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
-
-    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
-    glm::mat4 projMatrix = glm::perspective(30.0f, 1024.0f/800.0f, 1.0f, 100.0f);
-
-    // upload Uniform matrices
-    glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
-    glUniformMatrix4fv(viewMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(viewMatrix) );
-    glUniformMatrix4fv(projMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(projMatrix) );
- 
+    setUpShader();
 
     genVAOsAndUniformBuffer(scene);
 
@@ -173,6 +144,48 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void setUpShader()
+{
+ //set up shader
+    std::ifstream inFile;
+    inFile.open("../shaders/vertexShader.vs");//open the input file
+    std::stringstream vShaderStream;
+    vShaderStream << inFile.rdbuf();//read the file
+    inFile.close();
+    const std::string strVertexShader = vShaderStream.str();//str holds the content of the file
+
+    inFile.open("../shaders/fragmentShader.fs");//open the input file
+    std::stringstream fShaderStream;
+    fShaderStream << inFile.rdbuf();//read the file
+    const std::string strFragmentShader = fShaderStream.str();//str holds the content of the file
+
+
+    try {
+        program = createProgram(strVertexShader, strFragmentShader);
+    } catch (std::logic_error& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    // get uniform locations
+    glUseProgram(program);
+    modelMatrixUniformLocation = glGetUniformLocation(program, "modelMatrix");
+    viewMatrixUniformLocation  = glGetUniformLocation(program, "viewMatrix");
+    projMatrixUniformLocation  = glGetUniformLocation(program, "projMatrix");
+
+
+    // generating view / projection / model  matrix
+    modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 20.0, -30));
+    modelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0), 90.0f, glm::vec3(1.0f, 0.0f, 0.0f) );
+    modelMatrix = modelMatrix * glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
+
+    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+    glm::mat4 projMatrix = glm::perspective(30.0f, 1024.0f/800.0f, 1.0f, 100.0f);
+
+    // upload Uniform matrices
+    glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
+    glUniformMatrix4fv(viewMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(viewMatrix) );
+    glUniformMatrix4fv(projMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(projMatrix) );   
+}
 
 
 void genVAOsAndUniformBuffer(const aiScene *sc) {
