@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 
 
 // Information to render each assimp node
@@ -38,53 +39,12 @@ std::vector<struct MyMesh> myMeshes;
 // Vertex Attribute Locations
 GLuint vertexLoc=0, normalLoc=1, texCoordLoc=2;
 
-
 //forward declaration
 void genVAOsAndUniformBuffer(const aiScene*);
 
-const std::string strVertexShader(
-    "#version 330\n"
-    /*"layout(location = 0) in vec4 position;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = position;\n"
-    "}\n"*/
-
-    "layout(location = 0) in vec3 position;\n"
-    "layout(location = 1) in vec3 normal;\n"
- 
-    "uniform mat4 projMatrix;\n"
-    "uniform mat4 viewMatrix;\n"
-    "uniform mat4 modelMatrix;\n"
-     
-    // "in vec2 texCoord;\n"
-     
-    "out vec4 vertexPos;\n"
-    /*"out vec2 TexCoord;\n"*/
-    "out vec3 Normal;\n"
-     
-    "void main()\n"
-    "{\n"
-    "    Normal = normalize(vec3( (viewMatrix * modelMatrix) * vec4(normal,0.0)));\n"
-    /*"    TexCoord = vec2(texCoord);\n"*/
-    "    gl_Position = (projMatrix * viewMatrix * modelMatrix) * vec4(position,1.0);\n"
-    "}\n"
-);
-
-const std::string strFragmentShader(
-    "#version 330\n"
-    "layout(location = 0) out vec4 outputColor;\n"
-    "in vec3 Normal;\n"
-    "void main()\n"
-    "{\n"
-    "   outputColor = vec4(abs(Normal.x),abs(Normal.y),abs(Normal.z), 1.0f);\n"
-    // "   outputColor = vec4(0.7, 0.0f, 0.0f, 1.0f);\n"
-    "}\n"
-
-);
-
 int main(int argc, char *argv[])
 {
+//read model and set up scene
     Assimp::Importer importer;
     std::string pFile = "boblampclean.md5mesh" ;
     //check if file exists
@@ -109,7 +69,7 @@ int main(int argc, char *argv[])
 
     // Now we can access the file's contents.
     std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
-
+//set up window
     GLFWwindow* window;
 
     /* Initialize the library */
@@ -137,6 +97,19 @@ int main(int argc, char *argv[])
 
     glClearColor(0.4,0.4,0.4,1.0);
     glEnable(GL_DEPTH_TEST);
+
+//set up shader
+    std::ifstream inFile;
+    inFile.open("../shaders/vertexShader.vs");//open the input file
+    std::stringstream vShaderStream;
+    vShaderStream << inFile.rdbuf();//read the file
+    inFile.close();
+    const std::string strVertexShader = vShaderStream.str();//str holds the content of the file
+
+    inFile.open("../shaders/fragmentShader.fs");//open the input file
+    std::stringstream fShaderStream;
+    fShaderStream << inFile.rdbuf();//read the file
+    const std::string strFragmentShader = fShaderStream.str();//str holds the content of the file
 
     GLuint program = 0;
     try {
