@@ -68,6 +68,8 @@ uint m_NumBones;
 std::vector<BoneInfo> m_BoneInfo;
 aiMatrix4x4 m_GlobalInverseTransform;
 
+bool hasAnimations = false;
+
 enum VB_TYPES {
     INDEX_BUFFER,
     POS_VB,
@@ -200,6 +202,7 @@ int main(int argc, char *argv[])
     else{
         std::cout << "Couldn't open file: " << pFile.c_str() << std::endl;
         std::cout << importer.GetErrorString();
+        return 1;
     }
 
 
@@ -215,6 +218,13 @@ int main(int argc, char *argv[])
 
     // Now we can access the file's contents.
     std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
+
+    if(ARRAY_SIZE_IN_ELEMENTS(scene->mAnimations[0]) > 0)
+    {
+        std::cout << ARRAY_SIZE_IN_ELEMENTS(scene->mAnimations[0]) << " animations in scene" << std::endl;
+        hasAnimations = true;
+    }
+    else std::cout << "no animations in scene" << std::endl;
 
     //animation
     m_GlobalInverseTransform = scene->mRootNode->mTransformation;
@@ -295,21 +305,6 @@ int main(int argc, char *argv[])
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-
-        BoneTransform(static_cast<float>(glfwGetTime()), Transforms);
-
-        for (uint i = 0 ; i < Transforms.size() ; i++) {
-            float currentTranform[4][4] = 
-            {
-                {Transforms[i].a1, Transforms[i].a2, Transforms[i].a3, Transforms[i].a4},
-                {Transforms[i].b1, Transforms[i].b2, Transforms[i].b3, Transforms[i].b4},
-                {Transforms[i].c1, Transforms[i].c2, Transforms[i].c3, Transforms[i].c4},
-                {Transforms[i].d1, Transforms[i].d2, Transforms[i].d3, Transforms[i].d4},
-            };
-            //needs pointer to 4x4 array as last parameter
-            glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)currentTranform);
-        }
-
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
       
         glUseProgram(program);
@@ -336,7 +331,22 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void updateBoneTransforms()
+{
+    BoneTransform(static_cast<float>(glfwGetTime()), Transforms);
 
+    for (uint i = 0 ; i < Transforms.size() ; i++) {
+        float currentTranform[4][4] = 
+        {
+            {Transforms[i].a1, Transforms[i].a2, Transforms[i].a3, Transforms[i].a4},
+            {Transforms[i].b1, Transforms[i].b2, Transforms[i].b3, Transforms[i].b4},
+            {Transforms[i].c1, Transforms[i].c2, Transforms[i].c3, Transforms[i].c4},
+            {Transforms[i].d1, Transforms[i].d2, Transforms[i].d3, Transforms[i].d4},
+        };
+        //needs pointer to 4x4 array as last parameter
+        glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)currentTranform);
+    }
+}
 
 void genVAOsAndUniformBuffer(const aiScene *sc) {
  
