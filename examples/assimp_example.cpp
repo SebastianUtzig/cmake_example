@@ -189,8 +189,10 @@ void setUpShader()
     modelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0), 90.0f, glm::vec3(1.0f, 0.0f, 0.0f) );
     modelMatrix = modelMatrix * glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
 
-    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
-    glm::mat4 projMatrix = glm::perspective(30.0f, 1024.0f/800.0f, 1.0f, 100.0f);
+    glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, -10.0));
+    viewMatrix[0] = -viewMatrix[0];
+    viewMatrix[1] = -viewMatrix[1];
+    glm::mat4 projMatrix = glm::perspectiveFov(glm::radians(60.0f), 1024.0f, 800.0f, 1.0f, 100.0f);
 
     // upload Uniform matrices
     glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
