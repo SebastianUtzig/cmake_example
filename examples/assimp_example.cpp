@@ -39,7 +39,7 @@ std::vector<struct MyMesh> myMeshes;
 // Vertex Attribute Locations
 GLuint vertexLoc=0, normalLoc=1, texCoordLoc=2;
 
-//handle for shader
+//handles for shader
 GLuint program = 0;
 GLuint modelMatrixUniformLocation = 0;
 GLuint viewMatrixUniformLocation = 0;
@@ -49,17 +49,23 @@ glm::mat4 modelMatrix;
 
 GLFWwindow* window;
 
+const aiScene* scene;
+
+const std::string vertShaderPath = "../shaders/vertexShader.vs";
+const std::string fragShaderPath = "../shaders/fragmentShader.fs";
+
 
 //forward declaration
 void genVAOsAndUniformBuffer(const aiScene*);
-void setUpShader();
+bool setUpShader();
 bool setUpWindow();
+void render();
 
 int main(int argc, char *argv[])
 {
 //read model and set up scene
     Assimp::Importer importer;
-    std::string pFile = "boblampclean.md5mesh" ;
+    std::string pFile = "boblampclean.md5mesh";
     //check if file exists
     std::ifstream fin(pFile.c_str());
     if(!fin.fail()) {
@@ -68,16 +74,16 @@ int main(int argc, char *argv[])
     else{
         std::cout << "Couldn't open file: " << pFile.c_str() << std::endl;
         std::cout << importer.GetErrorString();
+        return -1;
     }
 
-
     // the global Assimp scene object
-    const aiScene* scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
- 
+    scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
     // If the import failed, report it
-    if( !scene)
+    if(!scene)
     {
         std::cout << importer.GetErrorString()  << std::endl;
+        return -1;
     }
 
     // Now we can access the file's contents.
@@ -88,39 +94,47 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    setUpShader();
+    if(!setUpShader())
+    {
+        return -1;
+    }
 
     genVAOsAndUniformBuffer(scene);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-      
-        glUseProgram(program);
-        
-        float time = static_cast<float>(glfwGetTime());
-        
-        glm::mat4 newModelMatrix = glm::rotate(modelMatrix, time*0.3f, glm::vec3(0.0f, 0.0f, 1.0f) );
-        glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(newModelMatrix) );
-
-        for (auto mesh: myMeshes)
-        {
-            glBindVertexArray(mesh.vao);
-            glDrawElements(GL_TRIANGLES, mesh.numFaces*3,GL_UNSIGNED_INT,0);
-        }
-
-        glUseProgram(0);
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
-
-        /* Poll for and process events */
-        glfwPollEvents();
+        render();
     }
 
     glfwTerminate();
 
     return 0;
+}
+
+void render()
+{
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  
+    glUseProgram(program);
+    
+    float time = static_cast<float>(glfwGetTime());
+    
+    glm::mat4 newModelMatrix = glm::rotate(modelMatrix, time*0.3f, glm::vec3(0.0f, 0.0f, 1.0f) );
+    glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(newModelMatrix) );
+
+    for (auto mesh: myMeshes)
+    {
+        glBindVertexArray(mesh.vao);
+        glDrawElements(GL_TRIANGLES, mesh.numFaces*3,GL_UNSIGNED_INT,0);
+    }
+
+    glUseProgram(0);
+    /* Swap front and back buffers */
+    glfwSwapBuffers(window);
+
+    /* Poll for and process events */
+    glfwPollEvents();
 }
 
 bool setUpWindow()
@@ -136,7 +150,7 @@ bool setUpWindow()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
-    window = glfwCreateWindow(1024, 800, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(1024, 800, "Animation with Assimp", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -155,20 +169,30 @@ bool setUpWindow()
     return true;
 }
 
-void setUpShader()
+bool setUpShader()
 {
     std::ifstream inFile;
-    inFile.open("../shaders/vertexShader.vs");//open the input file
+    inFile.open(vertShaderPath);
+    if(inFile.fail())
+    {
+        std::cout << "Couldn't open file: " << vertShaderPath << std::endl;
+        return false;
+    }
     std::stringstream vShaderStream;
     vShaderStream << inFile.rdbuf();//read the file
     inFile.close();
     const std::string strVertexShader = vShaderStream.str();//str holds the content of the file
 
-    inFile.open("../shaders/fragmentShader.fs");//open the input file
+    inFile.open(fragShaderPath);
+    if(inFile.fail())
+    {
+        std::cout << "Couldn't open file: " << fragShaderPath << std::endl;
+        return false;
+    }
     std::stringstream fShaderStream;
     fShaderStream << inFile.rdbuf();//read the file
+    inFile.close();
     const std::string strFragmentShader = fShaderStream.str();//str holds the content of the file
-
 
     try {
         program = createProgram(strVertexShader, strFragmentShader);
@@ -182,7 +206,6 @@ void setUpShader()
     viewMatrixUniformLocation  = glGetUniformLocation(program, "viewMatrix");
     projMatrixUniformLocation  = glGetUniformLocation(program, "projMatrix");
 
-
     // generating view / projection / model  matrix
     modelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
     modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f) );
@@ -195,8 +218,9 @@ void setUpShader()
     glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
     glUniformMatrix4fv(viewMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(viewMatrix) );
     glUniformMatrix4fv(projMatrixUniformLocation , 1, GL_FALSE, glm::value_ptr(projMatrix) );   
-}
 
+    return true;
+}
 
 void genVAOsAndUniformBuffer(const aiScene *sc) {
  
