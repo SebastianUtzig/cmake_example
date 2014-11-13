@@ -43,7 +43,7 @@ GLuint vertexLoc=0, normalLoc=1, texCoordLoc=2;
 void genVAOsAndUniformBuffer(const aiScene*);
 
 const std::string strVertexShader(
-    "#version 440\n"
+    "#version 330\n"
     /*"layout(location = 0) in vec4 position;\n"
     "void main()\n"
     "{\n"
@@ -72,7 +72,7 @@ const std::string strVertexShader(
 );
 
 const std::string strFragmentShader(
-    "#version 440\n"
+    "#version 330\n"
     "layout(location = 0) out vec4 outputColor;\n"
     "in vec3 Normal;\n"
     "void main()\n"
@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     window = glfwCreateWindow(1024, 800, "Hello World", NULL, NULL);
