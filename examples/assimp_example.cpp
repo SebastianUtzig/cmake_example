@@ -65,9 +65,9 @@ const std::string strVertexShader(
      
     "void main()\n"
     "{\n"
-    "    Normal = normalize(vec3(viewMatrix * modelMatrix * vec4(normal,0.0)));\n"
+    "    Normal = normalize(vec3( (viewMatrix * modelMatrix) * vec4(normal,0.0)));\n"
     /*"    TexCoord = vec2(texCoord);\n"*/
-    "    gl_Position = projMatrix * viewMatrix * modelMatrix * vec4(position,1.0);\n"
+    "    gl_Position = (projMatrix * viewMatrix * modelMatrix) * vec4(position,1.0);\n"
     "}\n"
 );
 
@@ -86,7 +86,7 @@ const std::string strFragmentShader(
 int main(int argc, char *argv[])
 {
     Assimp::Importer importer;
-    std::string pFile = "teapot.obj" ;
+    std::string pFile = "boblampclean.md5mesh" ;
     //check if file exists
     std::ifstream fin(pFile.c_str());
     if(!fin.fail()) {
@@ -128,14 +128,15 @@ int main(int argc, char *argv[])
         return -1;
     }
     
-    /* Make the window's context current */
+    /* Make the window's context current */ 
     glfwMakeContextCurrent(window);
 
     glewExperimental = GL_TRUE;
     GLenum glewError = glewInit();
 
     glClearColor(0.4,0.4,0.4,1.0);
-    
+    glEnable(GL_DEPTH_TEST);
+
     GLuint program = 0;
     try {
         program = createProgram(strVertexShader, strFragmentShader);
@@ -151,9 +152,12 @@ int main(int argc, char *argv[])
 
 
     // generating view / projection / model  matrix
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0));
-    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 4.0)));
-    glm::mat4 projMatrix = glm::perspective(60.0f, (float)1024/800, 1.0f, 100.0f);
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 20.0, -30));
+    modelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0), 90.0f, glm::vec3(1.0f, 0.0f, 0.0f) );
+    modelMatrix = modelMatrix * glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
+
+    glm::mat4 viewMatrix = glm::inverse(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+    glm::mat4 projMatrix = glm::perspective(30.0f, 1024.0f/800.0f, 1.0f, 100.0f);
 
     // upload Uniform matrices
     glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
@@ -172,8 +176,8 @@ int main(int argc, char *argv[])
         
         float time = static_cast<float>(glfwGetTime());
         
-        modelMatrix = glm::rotate(glm::mat4(1.0), time*0.3f, glm::vec3(0.0f, 1.0f, 0.0f) );
-        glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
+        glm::mat4 newModelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0), time*0.3f, glm::vec3(0.0f, 0.0f, 1.0f) );
+        glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(newModelMatrix) );
 
 
         for (auto mesh: myMeshes)
