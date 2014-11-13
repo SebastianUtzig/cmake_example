@@ -127,6 +127,7 @@ int main(int argc, char *argv[])
         glfwTerminate();
         return -1;
     }
+    std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
     
     /* Make the window's context current */ 
     glfwMakeContextCurrent(window);
