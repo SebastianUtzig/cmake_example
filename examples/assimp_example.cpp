@@ -47,9 +47,13 @@ GLuint projMatrixUniformLocation = 0;
 
 glm::mat4 modelMatrix;
 
+GLFWwindow* window;
+
+
 //forward declaration
 void genVAOsAndUniformBuffer(const aiScene*);
 void setUpShader();
+bool setUpWindow();
 
 int main(int argc, char *argv[])
 {
@@ -78,35 +82,11 @@ int main(int argc, char *argv[])
 
     // Now we can access the file's contents.
     std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
-//set up window
-    GLFWwindow* window;
 
-    /* Initialize the library */
-    if (!glfwInit())
-        return -1;
-
-    /* Create a windowed mode window and its OpenGL context */
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    
-    window = glfwCreateWindow(1024, 800, "Hello World", NULL, NULL);
-    if (!window)
+    if(!setUpWindow())
     {
-        glfwTerminate();
         return -1;
     }
-    std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
-    
-    /* Make the window's context current */ 
-    glfwMakeContextCurrent(window);
-
-    glewExperimental = GL_TRUE;
-    GLenum glewError = glewInit();
-
-    glClearColor(0.4,0.4,0.4,1.0);
-    glEnable(GL_DEPTH_TEST);
-
 
     setUpShader();
 
@@ -144,9 +124,40 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+bool setUpWindow()
+{
+    window;
+
+    /* Initialize the library */
+    if (!glfwInit())
+        return false;
+
+    /* Create a windowed mode window and its OpenGL context */
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    window = glfwCreateWindow(1024, 800, "Hello World", NULL, NULL);
+    if (!window)
+    {
+        glfwTerminate();
+        return false;
+    }
+    
+    /* Make the window's context current */ 
+    glfwMakeContextCurrent(window);
+
+    glewExperimental = GL_TRUE;
+    GLenum glewError = glewInit();
+
+    glClearColor(0.4,0.4,0.4,1.0);
+    glEnable(GL_DEPTH_TEST);
+
+    return true;
+}
+
 void setUpShader()
 {
- //set up shader
     std::ifstream inFile;
     inFile.open("../shaders/vertexShader.vs");//open the input file
     std::stringstream vShaderStream;
