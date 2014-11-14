@@ -39,7 +39,7 @@ void Scene::VertexBoneData::AddBoneData(uint BoneID, float Weight)
             return;
         }        
     }
-    
+    std::cout << "Warning: Ignoring bone associated to vertex (more than " << ARRAY_SIZE_IN_ELEMENTS(IDs) << ")" << std::endl;
     // should never get here - more bones than we have space for
     //assert(0);
 }
