@@ -88,6 +88,8 @@ int main(int argc, char *argv[])
 
     // Now we can access the file's contents.
     std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
+    std::cout << " contains " << scene->mNumMeshes << " meshes" << std::endl;
+    std::cout << " contains " << scene->mNumAnimations << " animations" << std::endl;
 
     if(!setUpWindow())
     {
@@ -231,7 +233,9 @@ void genVAOsAndUniformBuffer(const aiScene *sc) {
     for (unsigned int n = 0; n < sc->mNumMeshes; ++n)
     {
         const aiMesh* mesh = sc->mMeshes[n];
- 
+
+        std::cout << "mesh " << mesh->mName.data << " has " << mesh->mNumBones << " bones" << std::endl;
+
         // create array with faces
         // have to convert from Assimp format to array
         unsigned int *faceArray;
