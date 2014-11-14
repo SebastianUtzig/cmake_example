@@ -56,6 +56,12 @@ void render();
 
 int main(int argc, char *argv[])
 {
+    std::string fileName = "boblampclean.md5mesh";
+    if (argc == 2)
+    {
+        fileName = argv[1];
+    }
+
     if(!setUpWindow())
     {
         return -1;
@@ -66,7 +72,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     //scene = Scene();
-    if (!scene.LoadMesh("pinky.md5mesh")) {
+    if (!scene.LoadMesh(fileName)) {
         printf("Mesh load failed\n");
         return -1;            
     }
