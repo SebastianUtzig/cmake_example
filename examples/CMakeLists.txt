@@ -12,6 +12,6 @@ target_link_libraries (glfw_example glfw GLEW ${EXTRA_LIBS} ${GLFW_LIBRARIES} as
 add_dependencies(glfw_example glfw ${GLFW_LIBRARIES})
 
 
-#add_executable (assimp_example assimp_example.cpp utils.cpp)
-#target_link_libraries (assimp_example glfw GLEW ${EXTRA_LIBS} ${GLFW_LIBRARIES} assimp)
-#add_dependencies(assimp_example glfw ${GLFW_LIBRARIES})
+add_executable (assimp_example assimp_example.cpp utils.cpp scene.cpp)
+target_link_libraries (assimp_example glfw GLEW ${EXTRA_LIBS} ${GLFW_LIBRARIES} assimp)
+add_dependencies(assimp_example glfw ${GLFW_LIBRARIES})
