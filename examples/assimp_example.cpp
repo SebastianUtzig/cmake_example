@@ -47,7 +47,7 @@ Scene scene;
 const std::string vertShaderPath = "../shaders/vertexShader.vs";
 const std::string fragShaderPath = "../shaders/fragmentShader.fs";
 
-
+GLuint m_boneLocation[MAX_BONES];
 //forward declaration
 //void genVAOsAndUniformBuffer(const aiScene*);
 bool setUpShader();
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     {
         return -1;
     }
-    
+
     //scene = Scene();
     if (!scene.LoadMesh("boblampclean.md5mesh")) {
         printf("Mesh load failed\n");
@@ -75,7 +75,12 @@ int main(int argc, char *argv[])
    //  std::cout << "Import of scene " << pFile.c_str() << " succeeded." << std::endl;
    //  std::cout << " contains " << scene->mNumMeshes << " meshes" << std::endl;
    // std::cout << " contains " << scene->mNumAnimations << " animations" << std::endl;
-
+    for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_boneLocation) ; i++) {
+        char Name[128];
+        memset(Name, 0, sizeof(Name));
+        SNPRINTF(Name, sizeof(Name), "gBones[%d]", i);
+        m_boneLocation[i] = glGetUniformLocation(program,Name);
+    }
 
 
     //genVAOsAndUniformBuffer(scene);
@@ -100,7 +105,7 @@ void render()
     
     float time = static_cast<float>(glfwGetTime());
     
-    glm::mat4 newModelMatrix = glm::rotate(modelMatrix, time*0.3f, glm::vec3(0.0f, 0.0f, 1.0f) );
+    glm::mat4 newModelMatrix = glm::rotate(modelMatrix, time*0.3f, glm::vec3(0.0f, 1.0f, 0.0f) );
     glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(newModelMatrix) );
 
     updateBoneTransforms();
@@ -186,7 +191,7 @@ bool setUpShader()
 
     // generating view / projection / model  matrix
     //modelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f) );
+    //modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f) );
 
     glm::mat4 cameraMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 30.0, 100.0));
     glm::mat4 viewMatrix = glm::inverse(cameraMatrix);
@@ -272,14 +277,14 @@ void updateBoneTransforms()
 
     for (uint i = 0 ; i < Transforms.size() ; i++) {
         assert(i < MAX_BONES);
-        // float currentTranform[4][4] = 
-        // {
-        //     {Transforms[i].a1, Transforms[i].a2, Transforms[i].a3, Transforms[i].a4},
-        //     {Transforms[i].b1, Transforms[i].b2, Transforms[i].b3, Transforms[i].b4},
-        //     {Transforms[i].c1, Transforms[i].c2, Transforms[i].c3, Transforms[i].c4},
-        //     {Transforms[i].d1, Transforms[i].d2, Transforms[i].d3, Transforms[i].d4},
-        // };
+        float currentTranform[4][4] = 
+        {
+            {Transforms[i].a1, Transforms[i].a2, Transforms[i].a3, Transforms[i].a4},
+            {Transforms[i].b1, Transforms[i].b2, Transforms[i].b3, Transforms[i].b4},
+            {Transforms[i].c1, Transforms[i].c2, Transforms[i].c3, Transforms[i].c4},
+            {Transforms[i].d1, Transforms[i].d2, Transforms[i].d3, Transforms[i].d4},
+        };
         //needs pointer to 4x4 array as last parameter
-        //glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)Transforms[i]);
+        glUniformMatrix4fv(m_boneLocation[i], 1, GL_TRUE, (const GLfloat*)currentTranform);
     }
 }
