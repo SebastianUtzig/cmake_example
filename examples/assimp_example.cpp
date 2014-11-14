@@ -21,7 +21,7 @@
 //utility function to count elements in array
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 #define SNPRINTF snprintf
-#define MAX_BONES 100
+#define MAX_BONES 1000
 
 bool hasAnimations = false;
 void updateBoneTransforms();
@@ -65,9 +65,8 @@ int main(int argc, char *argv[])
     {
         return -1;
     }
-
     //scene = Scene();
-    if (!scene.LoadMesh("boblampclean.md5mesh")) {
+    if (!scene.LoadMesh("pinky.md5mesh")) {
         printf("Mesh load failed\n");
         return -1;            
     }
@@ -145,6 +144,7 @@ bool setUpWindow()
 
     glewExperimental = GL_TRUE;
     GLenum glewError = glewInit();
+    std::cout << glGetError() << ", glew initeted - but createted GL_INVALID_ENUM, it works not" << std::endl;
 
     glClearColor(0.4,0.4,0.4,1.0);
     glEnable(GL_DEPTH_TEST);
@@ -193,9 +193,9 @@ bool setUpShader()
     //modelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(0.4f) );
     //modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f) );
 
-    glm::mat4 cameraMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 30.0, 100.0));
+    glm::mat4 cameraMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 30.0, 150.0));
     glm::mat4 viewMatrix = glm::inverse(cameraMatrix);
-    glm::mat4 projMatrix = glm::perspectiveFov(glm::radians(60.0f), 1024.0f, 800.0f, 1.0f, 200.0f);
+    glm::mat4 projMatrix = glm::perspectiveFov(glm::radians(60.0f), 1024.0f, 800.0f, 1.0f, 500.0f);
 
     // upload Uniform matrices
     glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix) );
